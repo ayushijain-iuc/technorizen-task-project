@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+import logging
 from database import get_db
 from models import User
 from schemas import UserCreate, UserResponse, Token
 from auth import get_password_hash, verify_password, create_access_token, get_current_user
 from config import settings
 from email_service import EmailService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -44,10 +47,12 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     # Send welcome email
     try:
-        EmailService.send_welcome_email(new_user.email, new_user.username)
+        email_sent = EmailService.send_welcome_email(new_user.email, new_user.username)
+        if not email_sent:
+            logger.warning(f"Failed to send welcome email to {new_user.email}")
     except Exception as e:
-        # Don't fail registration if email fails
-        pass
+        # Don't fail registration if email fails, but log the error
+        logger.error(f"Error sending welcome email to {new_user.email}: {str(e)}")
     
     return new_user
 

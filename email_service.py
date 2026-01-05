@@ -25,13 +25,31 @@ class EmailService:
         """
         # Try SendGrid first if API key is configured
         if settings.SENDGRID_API_KEY and settings.SENDGRID_API_KEY != "your-sendgrid-api-key-here":
+            logger.info("Attempting to send email via SendGrid")
             return EmailService._send_via_sendgrid(to_email, subject, html_content, text_content)
         
-        # Fallback to SMTP
-        if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
+        # Fallback to SMTP (supports both Django-style and direct SMTP settings)
+        smtp_host = settings.smtp_host
+        smtp_user = settings.smtp_user
+        smtp_password = settings.smtp_password
+        
+        # Detailed debugging
+        logger.info(f"Email service check:")
+        logger.info(f"  - EMAIL_HOST: {settings.EMAIL_HOST}")
+        logger.info(f"  - EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+        logger.info(f"  - EMAIL_HOST_PASSWORD: {'***' if settings.EMAIL_HOST_PASSWORD else 'Not Set'}")
+        logger.info(f"  - SMTP_HOST: {settings.SMTP_HOST}")
+        logger.info(f"  - SMTP_USER: {settings.SMTP_USER}")
+        logger.info(f"  - Resolved smtp_host: {smtp_host}")
+        logger.info(f"  - Resolved smtp_user: {smtp_user}")
+        logger.info(f"  - Resolved smtp_password: {'***' if smtp_password else 'Not Set'}")
+        
+        if smtp_host and smtp_user and smtp_password:
+            logger.info(f"Attempting to send email via SMTP to {to_email}")
             return EmailService._send_via_smtp(to_email, subject, html_content, text_content)
         
         logger.warning("No email service configured. Email not sent.")
+        logger.warning(f"SMTP Config - Host: {smtp_host}, User: {smtp_user}, Password: {'Set' if smtp_password else 'Not Set'}")
         return False
     
     @staticmethod
@@ -57,11 +75,14 @@ class EmailService:
     
     @staticmethod
     def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
-        """Send email via SMTP"""
+        """Send email via SMTP (supports both Django-style and direct SMTP settings)"""
         try:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>"
+            
+            # Use email_from_address property which handles Django-style and direct settings
+            from_email = settings.email_from_address
+            msg['From'] = f"{settings.EMAIL_FROM_NAME} <{from_email}>"
             msg['To'] = to_email
             
             if text_content:
@@ -71,16 +92,39 @@ class EmailService:
             part2 = MIMEText(html_content, 'html')
             msg.attach(part2)
             
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                if settings.SMTP_USE_TLS:
+            # Use properties that handle both Django-style and direct SMTP settings
+            smtp_host = settings.smtp_host
+            smtp_port = settings.smtp_port
+            smtp_user = settings.smtp_user
+            smtp_password = settings.smtp_password
+            smtp_use_tls = settings.smtp_use_tls
+            
+            logger.info(f"Connecting to SMTP server: {smtp_host}:{smtp_port}, TLS: {smtp_use_tls}, User: {smtp_user}")
+            
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                if smtp_use_tls:
+                    logger.info("Starting TLS connection...")
                     server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                logger.info(f"Logging in as {smtp_user}...")
+                server.login(smtp_user, smtp_password)
+                logger.info(f"Sending email to {to_email}...")
                 server.send_message(msg)
             
-            logger.info(f"Email sent via SMTP to {to_email}")
+            logger.info(f"Email sent successfully via SMTP to {to_email} from {from_email}")
             return True
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP Authentication error: {str(e)}")
+            logger.error("Please check your email credentials (username and password)")
+            return False
+        except smtplib.SMTPConnectError as e:
+            logger.error(f"SMTP Connection error: {str(e)}")
+            logger.error("Please check SMTP host and port settings")
+            return False
         except Exception as e:
             logger.error(f"SMTP error: {str(e)}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
     
     @staticmethod

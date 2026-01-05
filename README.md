@@ -94,14 +94,25 @@ A comprehensive backend REST API service for managing remote Linux servers via S
    SECRET_KEY=your-secret-key-here-change-in-production-min-32-chars
    
    # Email Configuration (choose SendGrid or SMTP)
+   # Option 1: SendGrid
    SENDGRID_API_KEY=your-sendgrid-api-key-here
    EMAIL_FROM=noreply@yourdomain.com
+   EMAIL_FROM_NAME=SSH Manager
    
-   # OR use SMTP
+   # Option 2: SMTP (Direct settings)
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
    SMTP_USER=your-email@gmail.com
    SMTP_PASSWORD=your-app-password
+   SMTP_USE_TLS=True
+   
+   # Option 3: SMTP (Django-style settings - also supported)
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USE_TLS=True
+   EMAIL_HOST_USER=your-email@gmail.com
+   EMAIL_HOST_PASSWORD=your-app-password
+   DEFAULT_FROM_EMAIL=your-email@gmail.com
    ```
 
 6. **Initialize the database** (done automatically on first run):
@@ -346,14 +357,31 @@ curl -X POST "http://localhost:8000/api/commands/execute" \
 
 1. Enable 2-factor authentication on your Gmail account
 2. Generate an App Password: https://myaccount.google.com/apppasswords
-3. Configure in `.env`:
+3. Configure in `.env` using **either** format:
+
+   **Option A: Direct SMTP settings**
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
    SMTP_USER=your-email@gmail.com
    SMTP_PASSWORD=your-app-password
    SMTP_USE_TLS=True
+   EMAIL_FROM=your-email@gmail.com
+   EMAIL_FROM_NAME=SSH Manager
    ```
+
+   **Option B: Django-style settings (also supported)**
+   ```env
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USE_TLS=True
+   EMAIL_HOST_USER=your-email@gmail.com
+   EMAIL_HOST_PASSWORD=your-app-password
+   DEFAULT_FROM_EMAIL=your-email@gmail.com
+   EMAIL_FROM_NAME=SSH Manager
+   ```
+
+**Note**: The application automatically detects and uses Django-style email settings if present, making it compatible with existing Django projects.
 
 ## Database Migration
 

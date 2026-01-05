@@ -19,15 +19,54 @@ class Settings(BaseSettings):
     
     # Email (SendGrid)
     SENDGRID_API_KEY: str = ""
-    EMAIL_FROM: str = "noreply@yourdomain.com"
+    EMAIL_FROM: str = "aayushi.jain@intelliatech.com"
     EMAIL_FROM_NAME: str = "SSH Manager"
     
-    # SMTP (Alternative)
-    SMTP_HOST: str = ""
+    # SMTP Configuration (Hardcoded - can be overridden via .env file)
+    # Django-style (will be mapped to SMTP settings)
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USE_TLS: bool = True
+    EMAIL_HOST_USER: str = "aayushi.jain@intelliatech.com"
+    EMAIL_HOST_PASSWORD: str = "kydn xwgc hpet gaqe"
+    DEFAULT_FROM_EMAIL: str = "aayushi.jain@intelliatech.com"
+    
+    # Direct SMTP settings (alternative to Django-style)
+    SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
+    SMTP_USER: str = "aayushi.jain@intelliatech.com"
+    SMTP_PASSWORD: str = "kydn xwgc hpet gaqe"
     SMTP_USE_TLS: bool = True
+    
+    @property
+    def smtp_host(self) -> str:
+        """Get SMTP host from Django EMAIL_HOST or SMTP_HOST"""
+        return self.EMAIL_HOST or self.SMTP_HOST
+    
+    @property
+    def smtp_port(self) -> int:
+        """Get SMTP port from Django EMAIL_PORT or SMTP_PORT"""
+        return self.EMAIL_PORT if self.EMAIL_HOST else self.SMTP_PORT
+    
+    @property
+    def smtp_user(self) -> str:
+        """Get SMTP user from Django EMAIL_HOST_USER or SMTP_USER"""
+        return self.EMAIL_HOST_USER or self.SMTP_USER
+    
+    @property
+    def smtp_password(self) -> str:
+        """Get SMTP password from Django EMAIL_HOST_PASSWORD or SMTP_PASSWORD"""
+        return self.EMAIL_HOST_PASSWORD or self.SMTP_PASSWORD
+    
+    @property
+    def smtp_use_tls(self) -> bool:
+        """Get SMTP TLS setting from Django EMAIL_USE_TLS or SMTP_USE_TLS"""
+        return self.EMAIL_USE_TLS if self.EMAIL_HOST else self.SMTP_USE_TLS
+    
+    @property
+    def email_from_address(self) -> str:
+        """Get email from address, prioritizing DEFAULT_FROM_EMAIL, then EMAIL_HOST_USER, then EMAIL_FROM"""
+        return self.DEFAULT_FROM_EMAIL or self.EMAIL_HOST_USER or self.EMAIL_FROM
     
     # Application
     APP_NAME: str = "SSH Manager API"
