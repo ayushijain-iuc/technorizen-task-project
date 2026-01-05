@@ -71,7 +71,28 @@ class SSHService:
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             
             # Connect to server
+            # Prefer password over SSH key if both are present (password is more reliable)
+            # Also skip SSH key if it's clearly invalid (too short)
+            use_ssh_key = False
             if ssh_key:
+                ssh_key_content = ssh_key.strip()
+                # Skip SSH key if it's too short (likely invalid/dummy key)
+                # Real RSA keys are typically 1500+ characters when base64 encoded
+                key_length = len(ssh_key_content.replace('\n', '').replace(' ', '').replace('\r', '').replace('\t', ''))
+                if key_length < 500:
+                    logger.warning(f"SSH key too short ({key_length} chars), skipping and using password authentication if available")
+                    use_ssh_key = False
+                    ssh_key = None  # Clear invalid key so password will be used
+                else:
+                    use_ssh_key = True
+            
+            # Prefer password over SSH key if both are available
+            if password and ssh_key:
+                logger.info("Both password and SSH key available, using password authentication")
+                use_ssh_key = False
+                ssh_key = None
+            
+            if use_ssh_key and ssh_key:
                 # Key-based authentication
                 private_key = None
                 ssh_key_content = ssh_key.strip()

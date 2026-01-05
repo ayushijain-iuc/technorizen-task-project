@@ -91,6 +91,17 @@ async def update_server(
     
     # Update fields
     update_data = server_data.model_dump(exclude_unset=True)
+    
+    # If password is being set (even if empty string), clear ssh_key (and vice versa) to ensure only one auth method
+    if 'password' in update_data:
+        # Password is being set, clear SSH key if not explicitly provided in this update
+        if 'ssh_key' not in update_data:
+            update_data['ssh_key'] = None
+    elif 'ssh_key' in update_data:
+        # SSH key is being set, clear password if not explicitly provided in this update
+        if 'password' not in update_data:
+            update_data['password'] = None
+    
     for field, value in update_data.items():
         # Handle empty strings - convert to None for optional fields
         if field in ['password', 'ssh_key', 'description'] and value == "":
