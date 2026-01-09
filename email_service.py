@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    """Email service using SendGrid or SMTP"""
     
     @staticmethod
     def send_email(
@@ -20,29 +19,18 @@ class EmailService:
         html_content: str,
         text_content: Optional[str] = None
     ) -> bool:
-        """
-        Send email using SendGrid (preferred) or SMTP fallback
-        """
-        # Try SendGrid first if API key is configured
+
+
         if settings.SENDGRID_API_KEY and settings.SENDGRID_API_KEY != "your-sendgrid-api-key-here":
             logger.info("Attempting to send email via SendGrid")
             return EmailService._send_via_sendgrid(to_email, subject, html_content, text_content)
         
-        # Fallback to SMTP (supports both Django-style and direct SMTP settings)
+
         smtp_host = settings.smtp_host
         smtp_user = settings.smtp_user
         smtp_password = settings.smtp_password
         
-        # Detailed debugging
-        logger.info(f"Email service check:")
-        logger.info(f"  - EMAIL_HOST: {settings.EMAIL_HOST}")
-        logger.info(f"  - EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
-        logger.info(f"  - EMAIL_HOST_PASSWORD: {'***' if settings.EMAIL_HOST_PASSWORD else 'Not Set'}")
-        logger.info(f"  - SMTP_HOST: {settings.SMTP_HOST}")
-        logger.info(f"  - SMTP_USER: {settings.SMTP_USER}")
-        logger.info(f"  - Resolved smtp_host: {smtp_host}")
-        logger.info(f"  - Resolved smtp_user: {smtp_user}")
-        logger.info(f"  - Resolved smtp_password: {'***' if smtp_password else 'Not Set'}")
+ 
         
         if smtp_host and smtp_user and smtp_password:
             logger.info(f"Attempting to send email via SMTP to {to_email}")
@@ -54,7 +42,6 @@ class EmailService:
     
     @staticmethod
     def _send_via_sendgrid(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
-        """Send email via SendGrid"""
         try:
             message = Mail(
                 from_email=(settings.EMAIL_FROM, settings.EMAIL_FROM_NAME),
@@ -75,12 +62,9 @@ class EmailService:
     
     @staticmethod
     def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
-        """Send email via SMTP (supports both Django-style and direct SMTP settings)"""
         try:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            
-            # Use email_from_address property which handles Django-style and direct settings
             from_email = settings.email_from_address
             msg['From'] = f"{settings.EMAIL_FROM_NAME} <{from_email}>"
             msg['To'] = to_email
@@ -91,8 +75,6 @@ class EmailService:
             
             part2 = MIMEText(html_content, 'html')
             msg.attach(part2)
-            
-            # Use properties that handle both Django-style and direct SMTP settings
             smtp_host = settings.smtp_host
             smtp_port = settings.smtp_port
             smtp_user = settings.smtp_user
@@ -129,7 +111,7 @@ class EmailService:
     
     @staticmethod
     def send_welcome_email(to_email: str, username: str) -> bool:
-        """Send welcome email to newly registered user"""
+
         subject = "Welcome to SSH Manager API"
         html_content = f"""
         <html>

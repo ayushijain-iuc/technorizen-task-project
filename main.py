@@ -15,14 +15,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="Backend REST API for managing remote Linux servers via SSH",
     version="1.0.0"
 )
 
-# CORS middleware
+
 origins = settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS else ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -32,20 +32,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(servers.router)
 app.include_router(commands.router)
 
-# Serve uploaded files
+
 if os.path.exists(settings.UPLOAD_DIR):
     app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup"""
     try:
         logger.info("Initializing database...")
         init_db()
@@ -57,7 +56,6 @@ async def startup_event():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
         "message": "SSH Manager API",
         "version": "1.0.0",
@@ -68,13 +66,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {"status": "healthy"}
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global exception handler"""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,

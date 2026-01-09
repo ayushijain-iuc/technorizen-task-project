@@ -11,16 +11,14 @@ from ssh_service import SSHService
 from email_service import EmailService
 
 router = APIRouter(prefix="/api/commands", tags=["Commands"])
-
-
 @router.post("/execute", response_model=CommandResponse)
 async def execute_command(
     command_data: CommandExecute,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Execute a command on a remote server via SSH"""
-    # Get server
+
+
     server = db.query(Server).filter(
         Server.id == command_data.server_id,
         Server.user_id == current_user.id
@@ -32,22 +30,20 @@ async def execute_command(
             detail="Server not found"
         )
     
-    # Validate server has authentication method
+
     if not server.password and not server.ssh_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Server must have either password or SSH key configured"
         )
     
-    # Normalize SSH key if present (handle escaped newlines from database)
+
     ssh_key_normalized = None
     if server.ssh_key:
-        # Convert escaped newlines to actual newlines
         ssh_key_normalized = server.ssh_key.replace('\\n', '\n')
-        # Also handle multiple levels of escaping
         ssh_key_normalized = re.sub(r'\\+n', '\n', ssh_key_normalized)
     
-    # Execute command
+
     success, output, error, exit_status = SSHService.execute_command(
         host=server.host,
         port=server.port,
@@ -57,7 +53,7 @@ async def execute_command(
         ssh_key=ssh_key_normalized
     )
     
-    # Log command execution
+
     command_log = CommandLog(
         user_id=current_user.id,
         server_id=server.id,
@@ -70,7 +66,7 @@ async def execute_command(
     db.commit()
     db.refresh(command_log)
     
-    # Send email notification
+
     try:
         EmailService.send_command_execution_email(
             to_email=current_user.email,
@@ -81,7 +77,6 @@ async def execute_command(
             error=error
         )
     except Exception as e:
-        # Don't fail if email fails
         pass
     
     return CommandResponse(
@@ -100,11 +95,10 @@ async def get_command_logs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get command execution logs for current user"""
+
     query = db.query(CommandLog).filter(CommandLog.user_id == current_user.id)
     
     if server_id:
-        # Verify server belongs to user
         server = db.query(Server).filter(
             Server.id == server_id,
             Server.user_id == current_user.id
@@ -115,7 +109,6 @@ async def get_command_logs(
                 detail="Server not found"
             )
         query = query.filter(CommandLog.server_id == server_id)
-    
     logs = query.order_by(CommandLog.execution_time.desc()).limit(limit).all()
     return logs
 
@@ -126,7 +119,6 @@ async def get_command_log(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get a specific command log by ID"""
     log = db.query(CommandLog).filter(
         CommandLog.id == log_id,
         CommandLog.user_id == current_user.id

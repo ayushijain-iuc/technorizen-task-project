@@ -6,13 +6,10 @@ import logging
 import os
 
 logger = logging.getLogger(__name__)
-
-# Get database URL from settings
 database_url = settings.DATABASE_URL
 
-# Create database engine
+
 if "sqlite" in database_url.lower():
-    # SQLite database
     engine = create_engine(
         database_url,
         connect_args={"check_same_thread": False},
@@ -20,23 +17,18 @@ if "sqlite" in database_url.lower():
     )
     logger.info("Using SQLite database")
 else:
-    # PostgreSQL database
     engine = create_engine(
         database_url,
-        pool_pre_ping=True,  # Verify connections before using
+        pool_pre_ping=True, 
         echo=False
     )
     logger.info("Using PostgreSQL database")
 
-# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base class for models
 Base = declarative_base()
 
 
 def get_db():
-    """Dependency for getting database session"""
     db = SessionLocal()
     try:
         yield db
@@ -45,7 +37,6 @@ def get_db():
 
 
 def init_db():
-    """Initialize database tables"""
     try:
         # Test connection for PostgreSQL
         if "sqlite" not in database_url.lower():
@@ -58,9 +49,7 @@ def init_db():
                 logger.error(f"Failed to connect to PostgreSQL: {conn_err}")
                 logger.error("Please check:")
                 logger.error("1. Internet connection")
-                logger.error("2. Supabase project is active")
-                logger.error("3. Connection string is correct")
-                logger.error("4. Firewall/network settings")
+
                 raise
         
         # Create tables
